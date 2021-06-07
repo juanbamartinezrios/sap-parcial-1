@@ -1,0 +1,110 @@
+<h1>SAP - Parcial 1</h1>
+<div class="container p-4">
+    <div class="container logs">
+        {{#if logs}}
+            <h2>Bitácora</h2>
+            <ul class="list-group">
+                {{#each logs}}
+                <li class="list-group-item d-flex">Log: {{descripcion}} / Criticidad: {{criticidad}}</li>
+                {{/each}}
+            </ul>
+        {{/if}}
+    </div>
+    <div class="container movimientos">
+        {{#if movimientos}}
+            <h2>Movimientos - Nro. Cuenta: {{movimientos.0.nro_cuenta}}</h2>
+            <ul class="list-group">
+                {{#each movimientos}}
+                <li class="list-group-item">Movimiento: {{descripcion}} - Fecha: {{fecha}}</li>
+                {{/each}}
+            </ul>
+        {{/if}}
+    </div>
+    <div class="container cuentas">
+        {{#if isCompra}}
+        {{else if cuentas}}
+            <h2>Cuentas</h2>
+            <ul class="list-group">
+                {{#each cuentas}}
+                <div class="list-group-item list-group-item-action flex-column align-items-start">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h5 class="mb-1"><b>{{#isEqual id_cotizacion '!=' 2}}Nro. de cuenta{{/isEqual}}{{#isEqual id_cotizacion '==' 2}}UUID{{/isEqual}}: {{nro_cuenta}}</b></h5>
+                        <small><span class="badge badge-primary badge-pill">{{#isEqual id_cotizacion '==' 1}}USD{{/isEqual}}{{#isEqual id_cotizacion '==' 2}}BTC{{/isEqual}}{{#isEqual id_cotizacion '==' 3}}${{/isEqual}}</span></small>
+                    </div>
+                    <p class="mb-1">Saldo: {{#isEqual id_cotizacion '==' 1}}USD {{/isEqual}}{{#isEqual id_cotizacion '==' 2}}BTC {{/isEqual}}{{#isEqual id_cotizacion '==' 3}}${{/isEqual}}{{saldo}}</p>
+                    {{#if alias}}
+                    <small>Alias: {{alias}}</small>
+                    {{/if}}
+                    <div class="btn-group d-flex justify-content-start" role="group" aria-label="Basic example">
+                        <a href="/movimientos/{{id_unico}}" class="btn btn-primary">Movimientos</a>
+                        {{#isEqual id_cotizacion '!=' 2}}
+                            <a href="/deposito/{{id_unico}}" class="btn btn-secondary">Depósito</a>
+                            <a href="/extraccion/{{id_unico}}" class="btn btn-secondary">Extracción</a>
+                        {{/isEqual}}
+                        {{#isEqual id_cotizacion '==' 2}}
+                            <a href="/comprar/" class="btn btn-secondary">Comprar</a>
+                        {{/isEqual}}
+                    </div>
+                </div>
+                {{/each}}
+            </ul>
+        {{/if}}
+    </div>
+    <div class="container deposito">
+        {{#if showFormToDeposit}}
+            <h2>Depósito</h2>
+            <form action="/deposito/submit" method="POST">
+                <div class="form-group">
+                    <label for="monto">Cuenta</label>
+                    <input type="text" class="form-control" ame="id_unico" value={{id_unico}} readonly>
+                </div>
+                <div class="form-group">
+                    <label for="monto">Monto:</label>
+                    <input type="text" class="form-control" id="monto" name="monto" placeholder="Ingrese un monto">
+                </div>
+                <button type="submit" class="btn btn-success">Aceptar</button>
+                <button type="button" class="btn btn-danger">Cancelar</button>
+            </form>
+        {{/if}}
+    </div>
+    <div class="container extraccion">
+        {{#if showFormToExtract}}
+            <h2>Extracción</h2>
+            <form action="/extraccion/submit" method="POST">
+                <div class="form-group">
+                    <label for="monto">Cuenta</label>
+                    <input type="text" class="form-control" ame="id_unico" value={{id_unico}} readonly>
+                </div>
+                <div class="form-group">
+                    <label for="monto">Monto:</label>
+                    <input type="text" class="form-control" id="monto" name="monto" placeholder="Ingrese un monto">
+                </div>
+                <button type="submit" class="btn btn-success">Aceptar</button>
+                <button type="button" class="btn btn-danger">Cancelar</button>
+            </form>
+        {{/if}}
+    </div>
+    <div class="container cuentas">
+        {{#if isCompra}}
+            <h2>Compra</h2>
+            <h2>Seleccionar una cuenta para realizar compra de CRIPTO:</h2>
+            <form action="/comprar/submit" method="POST">
+                <div class="form-group">
+                    <label for="id_unico">Cuenta:</label>
+                    <select name="select-cuenta" class="form-control" aria-describedby="cuentaHelp">
+                        {{#each cuentas}}
+                        <option value={{id_unico}} name="id_unico">{{#isEqual id_cotizacion '!=' 2}}Nro. de cuenta{{/isEqual}}{{#isEqual id_cotizacion '==' 2}}UUID{{/isEqual}}: {{nro_cuenta}} - Saldo: {{#isEqual id_cotizacion '==' 1}}USD {{/isEqual}}{{#isEqual id_cotizacion '==' 3}}${{/isEqual}}{{saldo}} </option> 
+                        {{/each}} 
+                    </select>
+                    <small id="cuentaHelp" class="form-text text-muted">Al realizar la compra de CRIPTO, en caso de cuenta en pesos, el débito será convertido a USD.</small>
+                </div>
+                <div class="form-group">
+                    <label for="monto">Monto de compra:</label>
+                    <input type="text" class="form-control" id="monto" name="monto" placeholder="Ingrese un monto">
+                </div>
+                <button type="submit" class="btn btn-success">Comprar</button>
+                <button type="button" class="btn btn-danger">Cancelar</button>
+            </form>
+        {{/if}}
+    </div>
+</div>
