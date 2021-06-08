@@ -22,6 +22,7 @@
     </div>
     <div class="container cuentas">
         {{#if isCompra}}
+        {{else if isTransferencia}}
         {{else if cuentas}}
             <h2>Cuentas</h2>
             <ul class="list-group">
@@ -48,6 +49,11 @@
                 </div>
                 {{/each}}
             </ul>
+            <div class="list-group mt-4 flex-row align-items-start">
+                <div class="btn-group">
+                    <a href="/transferencia" class="btn btn-primary">Transferencia</a>
+                </div>
+            </div>
         {{/if}}
     </div>
     <div class="container deposito">
@@ -56,7 +62,7 @@
             <form action="/deposito/submit" method="POST">
                 <div class="form-group">
                     <label for="monto">Cuenta</label>
-                    <input type="text" class="form-control" ame="id_unico" value={{id_unico}} readonly>
+                    <input type="text" class="form-control" name="id_unico" value={{id_unico}} readonly>
                 </div>
                 <div class="form-group">
                     <label for="monto">Monto:</label>
@@ -73,7 +79,7 @@
             <form action="/extraccion/submit" method="POST">
                 <div class="form-group">
                     <label for="monto">Cuenta</label>
-                    <input type="text" class="form-control" ame="id_unico" value={{id_unico}} readonly>
+                    <input type="text" class="form-control" name="id_unico" value={{id_unico}} readonly>
                 </div>
                 <div class="form-group">
                     <label for="monto">Monto:</label>
@@ -103,6 +109,38 @@
                     <input type="text" class="form-control" id="monto" name="monto" placeholder="Ingrese un monto">
                 </div>
                 <button type="submit" class="btn btn-success">Comprar</button>
+                <button type="button" class="btn btn-danger">Cancelar</button>
+            </form>
+        {{/if}}
+    </div>
+    <div class="container cuentas">
+        {{#if isTransferencia}}
+            <h2>Transferencia</h2>
+            <h2>Seleccione la cuenta desde la cual se hará la transferencia:</h2>
+            <form action="/transferencia/submit" method="POST">
+                <div class="form-group">
+                    <label for="id_unico_debito">Cuenta débito:</label>
+                    <select name="select-cuenta-debito" class="form-control" aria-describedby="cuentaDebitoHelp">
+                        {{#each cuentas}}
+                        <option value={{id_unico}} name="id_unico_debito">{{#isEqual id_cotizacion '!=' 2}}Nro. de cuenta{{/isEqual}}{{#isEqual id_cotizacion '==' 2}}UUID{{/isEqual}}: {{nro_cuenta}} - Saldo: {{#isEqual id_cotizacion '==' 1}}USD {{/isEqual}}{{#isEqual id_cotizacion '==' 3}}${{/isEqual}}{{saldo}} </option> 
+                        {{/each}} 
+                    </select>
+                    <small id="cuentaDebitoHelp" class="form-text text-muted"></small>
+                </div>
+                <div class="form-group">
+                    <label for="id_unico_credito">Cuenta crédito:</label>
+                    <select name="select-cuenta-credito" class="form-control" aria-describedby="cuentaCreditoHelp">
+                        {{#each cuentas}}
+                        <option value={{id_unico}} name="id_unico_credito">{{#isEqual id_cotizacion '!=' 2}}Nro. de cuenta{{/isEqual}}{{#isEqual id_cotizacion '==' 2}}UUID{{/isEqual}}: {{nro_cuenta}} - Saldo: {{#isEqual id_cotizacion '==' 1}}USD {{/isEqual}}{{#isEqual id_cotizacion '==' 3}}${{/isEqual}}{{saldo}} </option>
+                        {{/each}} 
+                    </select>
+                    <small id="cuentaCreditoHelp" class="form-text text-muted">Cuenta a la cual se le acreditará la moneda correspondiente realizando una conversión de ser necesario.</small>
+                </div>
+                <div class="form-group">
+                    <label for="monto">Monto de transferencia:</label>
+                    <input type="text" class="form-control" id="monto" name="monto" placeholder="Ingrese un monto">
+                </div>
+                <button type="submit" class="btn btn-success">Transferir</button>
                 <button type="button" class="btn btn-danger">Cancelar</button>
             </form>
         {{/if}}

@@ -3,6 +3,10 @@ const router = Router();
 const admin = require('firebase-admin');
 const moment = require('moment');
 
+var Bitacora = require('../models/bitacora');
+var Cuenta = require('../models/cuenta');
+var Movimiento = require('../models/movimiento');
+
 var serviceAcc = require('../sap-node-firebase-adminsdk-lk7cr-c9728f4c6d.json');
 
 admin.initializeApp({
@@ -11,34 +15,6 @@ admin.initializeApp({
 });
 
 const db = admin.database();
-        /**
-        USUARIO
-        id_usuario: 1,
-        nombre: 'Juan Bautista',
-        apellido: 'Martinez Ríos',
-        domicilio: 'Calle Falsa 123 - 3B',
-        dni: '37375957',
-        email: 'juanbamartinezrios@gmail.com',
-        password: 'admin'
-         */
-        /**
-        CUENTA
-        id_cotizacion: 3,
-        id_unico: '1234567890123456789012',
-        saldo: 1999888.99,
-        id_usuario: null,
-        alias: 'PESOS.WALLET.UNO',
-        nro_cuenta: '20900000290350000083',
-        id_usuario: 1
-         */
-        /**
-        MOVIMIENTO
-            id_usuario: 1,
-            id_unico: '1234567890123456789012',
-            nro_cuenta: '20900000290350000083',
-            descripcion: 'DEPÓSITO',
-            fecha: date
-         */
 
 var date = moment().toDate().toString();
 
@@ -48,7 +24,11 @@ router.get('/', (req, res) => {
 
 router.get('/bitacora', (req, res) => {
     db.ref('bitacora').once('value', (snapshot) => {
-        const data = snapshot.val();
+        const snapshotContainer = snapshot;
+        const data = [];
+        snapshotContainer.forEach((child) => {
+            data.push(new Bitacora(child.val().criticidad, child.val().descripcion));
+        });
         res.render('index', { logs: data });
     });
 });
@@ -112,7 +92,11 @@ router.post('/extraccion/submit', (req, res, next) => {
 
 router.get('/cuentas', (req, res) => {
     db.ref('cuentas').on('value', (snapshot) => {
-        const data = snapshot.val();
+        const snapshotContainer = snapshot;
+        const data = [];
+        snapshotContainer.forEach((child) => {
+            data.push(new Cuenta(child.val().id_cotizacion, child.val().id_unico, child.val().saldo, child.val().id_usuario, child.val().alias, child.val().nro_cuenta));
+        });
         res.render('index', { 
             cuentas: data,
             isCompra: false,
@@ -153,10 +137,11 @@ router.get('/cuentas', (req, res) => {
 
 router.get('/movimientos/:id', (req, res) => {
     db.ref('movimientos').once('value', (snapshot) => {
+        const snapshotContainer = snapshot;
         const data = [];
-        snapshot.forEach((child) => {
+        snapshotContainer.forEach((child) => {
             if (child.val().id_unico === req.params.id) {
-                data.push(child.val());
+                data.push(new Movimiento(child.val().id_usuario, child.val().id_unico, child.val().nro_cuenta, child.val().descripcion, child.val().fecha));
             }
             return false;
         });
@@ -243,6 +228,95 @@ router.post('/comprar/submit', (req, res, next) => {
                 id_unico: childCuentaSeleccionadaCRIPTO.id_unico,
                 nro_cuenta: childCuentaSeleccionadaCRIPTO.nro_cuenta,
                 descripcion: 'COMPRA',
+                fecha: date
+            });
+        });
+        res.redirect('/cuentas');
+    });
+});
+
+
+router.get('/transferencia', (req, res) => {
+    const data = [];
+    db.ref('cuentas').on('value', (snapshot) => {
+        snapshot.forEach((child) => {
+            if (child.val().id_cotizacion !== 2) {
+                data.push(child.val());
+            }
+        });
+        res.render('index', {
+            isTransferencia: true,
+            cuentas: data,
+            helpers: {
+                isEqual: function (lvalue, operator, rvalue, options) { 
+                    var operators, result;
+                    if (arguments.length < 3) {
+                        throw new Error("Handlerbars Helper 'compare' needs 2 parameters");
+                    }
+                    if (options === undefined) {
+                        options = rvalue;
+                        rvalue = operator;
+                        operator = "===";
+                    }
+                    var operators = {
+                        '==':       function(l,r) { return l == r; },
+                        '===':      function(l,r) { return l === r; },
+                        '!=':       function(l,r) { return l != r; },
+                        '<':        function(l,r) { return l < r; },
+                        '>':        function(l,r) { return l > r; },
+                        '<=':       function(l,r) { return l <= r; },
+                        '>=':       function(l,r) { return l >= r; },
+                        'typeof':   function(l,r) { return typeof l == r; }
+                    }
+                    if (!operators[operator])
+                        throw new Error("Handlerbars Helper 'compare' doesn't know the operator "+operator);
+                    var result = operators[operator](lvalue,rvalue);
+                    if( result ) {
+                        return options.fn(this);
+                    } else {
+                        return options.inverse(this);
+                    }
+                }
+            }});
+    });
+});
+
+router.post('/transferencia/submit', (req, res, next) => {
+    var id_unico_debito = req.body['select-cuenta-debito'];
+    var id_unico_credito = req.body['select-cuenta-credito'];
+    var monto = parseFloat(req.body.monto);
+    var childKeyCuentaSeleccionadaDEBITO;
+    var childKeyCuentaSeleccionadaCREDITO;
+    var cuentaSeleccionadaDEBITO;
+    var cuentaSeleccionadaCREDITO;
+    db.ref('cuentas').orderByChild('id_unico').equalTo(id_unico_debito).once('value', (snapshot) => {
+        childKeyCuentaSeleccionadaDEBITO = Object.keys(snapshot.val())[0];
+        var saldoActualCuentaSeleccionadaDEBITO = 0;
+        snapshot.forEach((child) => {
+            cuentaSeleccionadaDEBITO = child.val();
+            saldoActualCuentaSeleccionadaDEBITO = parseFloat(child.val().saldo.toString());
+        });
+        db.ref('cuentas').child(childKeyCuentaSeleccionadaDEBITO).update({saldo: saldoActualCuentaSeleccionadaDEBITO-monto});
+    });
+    db.ref('cuentas').orderByChild('id_unico').equalTo(id_unico_credito).once('value', (snapshot) => {
+        childKeyCuentaSeleccionadaCREDITO = Object.keys(snapshot.val())[0];
+        var saldoActualCuentaSeleccionadaCREDITO = 0;
+        snapshot.forEach((child) => {
+            cuentaSeleccionadaCREDITO = child.val();
+            saldoActualCuentaSeleccionadaCREDITO = parseFloat(child.val().saldo.toString());
+            var montoTransformado;
+            if (cuentaSeleccionadaDEBITO.id_cotizacion === 1 && cuentaSeleccionadaCREDITO.id_cotizacion === 3) {
+                montoTransformado = monto * 94.80;
+            }
+            if (cuentaSeleccionadaDEBITO.id_cotizacion === 3 && cuentaSeleccionadaCREDITO.id_cotizacion === 1) {
+                montoTransformado = monto / 94.80;
+            }
+            db.ref('cuentas').child(childKeyCuentaSeleccionadaCREDITO).update({saldo: saldoActualCuentaSeleccionadaCREDITO+montoTransformado});
+            db.ref('movimientos').push({
+                id_usuario: cuentaSeleccionadaDEBITO.id_usuario,
+                id_unico: cuentaSeleccionadaDEBITO.id_unico,
+                nro_cuenta: cuentaSeleccionadaDEBITO.nro_cuenta,
+                descripcion: 'TRANSFERENCIA',
                 fecha: date
             });
         });
